@@ -60,22 +60,33 @@ for i, epoch in obsepoch.iterrows():
     for mag_name in ['mag_auto', 'mag_aper1', "mag_aper2", "phot_aper2", "magzero", "magzero_std"]:
         mags = lightcurve_this_epoch[mag_name]
         mjds = lightcurve_this_epoch['mjd']
+
+        # save the straight average without outlier rejection
         avgmag = numpy.average(mags)
         out_name = "avg_" + mag_name
         output_df.loc[i, out_name] = avgmag
 
+        # add outlier rejection
+        bad_values = (mags > 50)
+        clean_avgmag = numpy.average(mags[~bad_values])
+        output_df.loc[i, "cleanavg_"+mag_name] = clean_avgmag
+        clean_sigma_raw = numpy.nanpercentile(mags[~bad_values], [16,50,84])
+        output_df.loc[i, "cleanmedian_" + mag_name] = clean_sigma_raw[1]
+        output_df.loc[i, "cleansigma_" + mag_name] = 0.5*(clean_sigma_raw[2]-clean_sigma_raw[0])
+
         single_epoch_lightcurve[mag_name] = (mags, output_df.loc[i, 'good_data'], mjds)
 
+    output_df.info()
 
-    for num in (output_df['avg_mag_aper2']):  # getting rid out outliers
-        if num > 50:
-            print("found num greater than 50")
-            output_df['avg_mag_aper2'] = output_df['avg_mag_aper2'].replace([num], np.NaN)
-            #print(num)
-        print("removed outliers")
-
-        # getting variance of avg_mag_aper2 data
-        variance_avgmag_aper2 = statistics.variance(range(output_df['avg_mag_aper2']))
+    # for num in (output_df['avg_mag_aper2']):  # getting rid out outliers
+    #     if num > 50:
+    #         print("found num greater than 50")
+    #         output_df['avg_mag_aper2'] = output_df['avg_mag_aper2'].replace([num], np.NaN)
+    #         #print(num)
+    #     print("removed outliers")
+    #
+    #     # getting variance of avg_mag_aper2 data
+    #     variance_avgmag_aper2 = statistics.variance(range(output_df['avg_mag_aper2']))
 
     epoch_lightcurves.append(single_epoch_lightcurve)
     print("made single epoch lightcurve")
@@ -92,7 +103,18 @@ output_df.to_csv(output_fn)
 # plotting light curve
 fig = plt.figure()
 ax = fig.add_subplot(111)
+min_clean = numpy.min(output_df['cleanavg_mag_aper2'])
+max_clean = numpy.max(output_df['cleanavg_mag_aper2'])
+
+def mjd2year(mjd):
+    return (mjd-54000)/365 + 1999.
+
+ax.set_ylim((min_clean-0.5,max_clean+0.5))
 ax.set_title('mjd_mean   vs   avg_mag_aper2')
-ax.scatter(output_df['mjd_mean'], output_df['avg_mag_aper2'])
-ax.plot(output_df['mjd_mean'], output_df['avg_mag_aper2'])
+bad_average = output_df['avg_mag_aper2'] > 50
+ax.scatter(mjd2year(output_df['mjd_mean'][~bad_average]), output_df['avg_mag_aper2'][~bad_average])
+ax.scatter(mjd2year(output_df['mjd_mean']), output_df['cleanavg_mag_aper2'], c='red')
+ax.errorbar(mjd2year(output_df['mjd_mean']), output_df['cleanavg_mag_aper2'],
+            yerr=output_df['cleansigma_mag_aper2'])
+ax.plot(mjd2year(output_df['mjd_mean'][~bad_average]), output_df['avg_mag_aper2'][~bad_average])
 plt.show()
