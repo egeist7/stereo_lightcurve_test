@@ -106,15 +106,14 @@ ax = fig.add_subplot(111)
 min_clean = numpy.min(output_df['cleanavg_mag_aper2'])
 max_clean = numpy.max(output_df['cleanavg_mag_aper2'])
 
-def mjd2year(mjd):
-    return (mjd-54000)/365 + 1999.
+# def mjd2year(mjd):
+   # return (mjd-54000)/365 + 1999.
 
 ax.set_ylim((min_clean-0.5,max_clean+0.5))
 ax.set_title('mjd_mean   vs   avg_mag_aper2')
 bad_average = output_df['avg_mag_aper2'] > 50
 ax.scatter(mjd2year(output_df['mjd_mean'][~bad_average]), output_df['avg_mag_aper2'][~bad_average])
 ax.scatter(mjd2year(output_df['mjd_mean']), output_df['cleanavg_mag_aper2'], c='red')
-ax.errorbar(mjd2year(output_df['mjd_mean']), output_df['cleanavg_mag_aper2'],
-            yerr=output_df['cleansigma_mag_aper2'])
+#ax.errorbar(mjd2year(output_df['mjd_mean']), output_df['cleanavg_mag_aper2'], yerr=output_df['cleansigma_mag_aper2'])
 ax.plot(mjd2year(output_df['mjd_mean'][~bad_average]), output_df['avg_mag_aper2'][~bad_average])
 plt.show()
